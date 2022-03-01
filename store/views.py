@@ -10,7 +10,7 @@ from store import serializers
 from store.filters import ProductFilter
 from store.models import Cart, CartItem, Collection, Customer, OrderItem, Product, Review
 from store.pagination import CustomPagination
-from store.permissions import IsAdminOrReadOnly
+from store.permissions import IsAdminOrReadOnly, ViewCustomerHistoryPermission
 from store.serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CustomerSerializer, ProductSerializer, ReviewSerializer, UpdateCartItemSerializer
 
 
@@ -99,3 +99,7 @@ class CustomerViewSet(CreateModelMixin, UpdateModelMixin, RetrieveModelMixin, Ge
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
+
+    @action(detail=True, permission_classes=[ViewCustomerHistoryPermission])
+    def history(self, request, pk):
+        return Response('ok')
