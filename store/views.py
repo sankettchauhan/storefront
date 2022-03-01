@@ -3,6 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from store import serializers
@@ -79,8 +80,14 @@ class CartItemViewSet(ModelViewSet):
 
 
 class CustomerViewSet(CreateModelMixin, UpdateModelMixin, RetrieveModelMixin, GenericViewSet):
+    permission_classes = [IsAuthenticated]
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     # define /store/customers/me. me is an action
     @action(detail=False, methods=['GET', 'PUT'])
