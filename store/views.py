@@ -3,13 +3,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from store import serializers
 from store.filters import ProductFilter
 from store.models import Cart, CartItem, Collection, Customer, OrderItem, Product, Review
 from store.pagination import CustomPagination
+from store.permissions import IsAdminOrReadOnly
 from store.serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CustomerSerializer, ProductSerializer, ReviewSerializer, UpdateCartItemSerializer
 
 
@@ -80,17 +81,12 @@ class CartItemViewSet(ModelViewSet):
 
 
 class CustomerViewSet(CreateModelMixin, UpdateModelMixin, RetrieveModelMixin, GenericViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
 
-    def get_permissions(self):
-        if self.request.method == 'GET':
-            return [AllowAny()]
-        return [IsAuthenticated()]
-
     # define /store/customers/me. me is an action
-    @action(detail=False, methods=['GET', 'PUT'])
+    @action(detail=False, methods=['GET', 'PUT'], permission_classes=[IsAuthenticated])
     # detail=False specifies that it is a detail view and not a list view
     def me(self, request):
         (customer, created) = Customer.objects.get_or_create(
