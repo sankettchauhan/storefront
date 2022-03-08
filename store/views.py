@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from store import serializers
 from store.filters import ProductFilter
-from store.models import Cart, CartItem, Collection, Customer, OrderItem, Product, Review
+from store.models import Cart, CartItem, Collection, Customer, Order, OrderItem, Product, Review
 from store.pagination import CustomPagination
 from store.permissions import IsAdminOrReadOnly, ViewCustomerHistoryPermission
-from store.serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CustomerSerializer, ProductSerializer, ReviewSerializer, UpdateCartItemSerializer
+from store.serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CustomerSerializer, OrderSerializer, ProductSerializer, ReviewSerializer, UpdateCartItemSerializer
 
 
 class ProductViewSet(ModelViewSet):
@@ -103,3 +103,8 @@ class CustomerViewSet(CreateModelMixin, UpdateModelMixin, RetrieveModelMixin, Ge
     @action(detail=True, permission_classes=[ViewCustomerHistoryPermission])
     def history(self, request, pk):
         return Response('ok')
+
+
+class OrderViewSet(ModelViewSet):
+    queryset = Order.objects.all()
+    serailizer = OrderSerializer
