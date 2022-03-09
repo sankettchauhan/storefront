@@ -3,7 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from store import serializers
@@ -106,6 +106,8 @@ class CustomerViewSet(CreateModelMixin, UpdateModelMixin, RetrieveModelMixin, Ge
 
 
 class OrderViewSet(ModelViewSet):
+    http_method_names = ['get', 'patch', 'delete', 'options', 'head']
+
     # overwrite method for CreateModelMixin - mixin for POST requests
     def create(self, request, *args, **kwargs):
         serializer = CreateOrderSerializer(
@@ -118,6 +120,11 @@ class OrderViewSet(ModelViewSet):
         # change serializer for response
         serializer = OrderSerializer(order)
         return Response(serializer.data)
+
+    def get_permissions(self):
+        if self.request.method in ['PATCH', 'DELETE']:
+            return [IsAdminUser]
+        return [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
