@@ -89,7 +89,7 @@ class CustomerViewSet(CreateModelMixin, UpdateModelMixin, RetrieveModelMixin, Ge
     @action(detail=False, methods=['GET', 'PUT'], permission_classes=[IsAuthenticated])
     # detail=False specifies that it is a detail view and not a list view
     def me(self, request):
-        (customer, created) = Customer.objects.get_or_create(
+        customer = Customer.objects.get(
             user_id=request.user.id)
         if request.method == 'GET':
             serializer = CustomerSerializer(customer)
@@ -106,7 +106,7 @@ class CustomerViewSet(CreateModelMixin, UpdateModelMixin, RetrieveModelMixin, Ge
 
 
 class OrderViewSet(ModelViewSet):
-    http_method_names = ['get', 'patch', 'delete', 'options', 'head']
+    http_method_names = ['get', 'patch', 'delete', 'options', 'head', 'post']
 
     # overwrite method for CreateModelMixin - mixin for POST requests
     def create(self, request, *args, **kwargs):
@@ -132,8 +132,8 @@ class OrderViewSet(ModelViewSet):
         if user.is_staff:
             return Order.objects.prefetch_related('items').all()
         # if user is logged in he can view his orders
-        (customer_id, created) = Customer.objects.only(
-            'id').get_or_create(user_id=user.id)
+        customer_id = Customer.objects.only(
+            'id').get(user_id=user.id)
         return Order.objects.filter(customer_id=customer_id)
 
     def get_serializer_class(self):

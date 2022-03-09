@@ -142,8 +142,8 @@ class CreateOrderSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         cart_id = self.validated_data['cart_id']
-        (customer, created) = Customer.objects\
-            .get_or_create(user_id=self.context['user_id'])
+        customer = Customer.objects\
+            .get(user_id=self.context['user_id'])
         # to create an order we only require customer
         order = Order.objects.create(customer=customer)
         cart_items = CartItem.objects.filter(cart_id=cart_id)
@@ -166,5 +166,5 @@ class CreateOrderSerializer(serializers.Serializer):
 
 class UpdateOrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model=Order
-        fields=['payment_status']
+        model = Order
+        fields = ['payment_status']
