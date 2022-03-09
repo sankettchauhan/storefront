@@ -123,8 +123,8 @@ class OrderViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.request.method in ['PATCH', 'DELETE']:
-            return [IsAdminUser]
-        return [IsAuthenticated]
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
