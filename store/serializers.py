@@ -1,7 +1,7 @@
 from decimal import Decimal
-import functools
+from django.db import transaction
 from rest_framework import serializers
-from .models import Cart, CartItem, Collection, Customer, Order, Product, Review
+from .models import Cart, CartItem, Collection, Customer, Order, OrderItem, Product, Review
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -38,14 +38,14 @@ class ReviewSerializer(serializers.ModelSerializer):
         return Review.objects.create(product_id=product_id, **validated_data)
 
 
-class CartItemProductSerializer(serializers.ModelSerializer):
+class SimpleProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'title', 'unit_price']
 
 
 class CartItemSerializer(serializers.ModelSerializer):
-    product = CartItemProductSerializer()
+    product = SimpleProductSerializer()
     total_price = serializers.SerializerMethodField()
 
     class Meta:
@@ -77,7 +77,8 @@ class AddCartItemSerializer(serializers.ModelSerializer):
     product_id = serializers.IntegerField()
 
     def validate_product_id(self, value):
-        if not Product.objects.filter(product_id=self.request['product_id']).exists():
+        # if not Product.objects.filter(product_id=self.request['product_id']).exists():
+        if not Product.objects.filter(id=value).exists():
             raise serializers.ValidationError('No product found for given id.')
         return value
 
@@ -114,7 +115,44 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = ['id', 'user_id', 'phone', 'birth_date']
 
 
+class OrderItemSerializer(serializers.ModelSerializer):
+    product = SimpleProductSerializer()
+
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product', 'unit_price', 'quantity']
+
+
 class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True)
+
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'payment_status', 'placed_at']
+        fields = ['id', 'customer', 'items', 'payment_status', 'placed_at']
+
+
+class CreateOrderSerializer(serializers.Serializer):
+    cart_id = serializers.UUIDField()
+
+    def save(self, **kwargs):
+        cart_id = self.validated_data['cart_id']
+        (customer, created) = Customer.objects\
+            .get_or_create(user_id=self.context['user_id'])
+        # to create an order we only require customer
+        order = Order.objects.create(customer=customer)
+        cart_items = CartItem.objects.filter(cart_id=cart_id)
+        # print('cart items: ', cart_items)
+        # ṭo create order items we need order object of the customer and
+        # the cart from which items need to be transferred from cart to order table
+        order_items = [
+            OrderItem(
+                order=order,
+                product=item.product,
+                quantity=item.quantity,
+                unit_price=item.product.unit_price
+            ) for item in cart_items
+        ]
+        # print('order items: ', order_items)
+        OrderItem.objects.bulk_create(order_items)
+        # Cart.objects.filter(pk=cart_id).delete()
+        return order

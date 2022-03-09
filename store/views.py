@@ -11,7 +11,7 @@ from store.filters import ProductFilter
 from store.models import Cart, CartItem, Collection, Customer, Order, OrderItem, Product, Review
 from store.pagination import CustomPagination
 from store.permissions import IsAdminOrReadOnly, ViewCustomerHistoryPermission
-from store.serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CustomerSerializer, OrderSerializer, ProductSerializer, ReviewSerializer, UpdateCartItemSerializer
+from store.serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, ProductSerializer, ReviewSerializer, UpdateCartItemSerializer
 
 
 class ProductViewSet(ModelViewSet):
@@ -106,5 +106,30 @@ class CustomerViewSet(CreateModelMixin, UpdateModelMixin, RetrieveModelMixin, Ge
 
 
 class OrderViewSet(ModelViewSet):
-    queryset = Order.objects.all()
-    serailizer = OrderSerializer
+    # overwrite method for CreateModelMixin - mixin for POST requests
+    def create(self, request, *args, **kwargs):
+        serializer = CreateOrderSerializer(
+            data=request.data,
+            context={'user_id': self.request.user.id}
+        )
+        serializer.is_valid(raise_exception=True)
+        order = serializer.save()
+        print(order)
+        # change serializer for response
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        user = self.request.user
+        # if user is a staff, he can view all orders
+        if user.is_staff:
+            return Order.objects.prefetch_related('items').all()
+        # if user is logged in he can view his orders
+        (customer_id, created) = Customer.objects.only(
+            'id').get_or_create(user_id=user.id)
+        return Order.objects.filter(customer_id=customer_id)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return CreateOrderSerializer
+        return OrderSerializer
